@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>月経移動 計算ツール</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    min-height: 100vh;
+    background: #fdf6f0;
+    font-family: 'Hiragino Sans', 'Noto Sans JP', sans-serif;
+    color: #3d2318;
+    padding: 24px 16px 60px;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; }
+
+  .header { text-align: center; margin-bottom: 24px; }
+  .header .emoji { font-size: 30px; margin-bottom: 4px; }
+  .header h1 { font-size: 26px; font-weight: 800; color: #9e5a3c; }
+  .header p { font-size: 16px; color: #9c7060; margin-top: 4px; }
+
+  .card {
+    background: #fff8f4;
+    border-radius: 18px;
+    border: 1.5px solid #f2d9cc;
+    padding: 20px 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 2px 12px rgba(201,122,90,0.07);
+  }
+  .card-title { font-weight: 700; font-size: 19px; color: #9e5a3c; margin-bottom: 14px; }
+
+  .form-group { margin-bottom: 14px; }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  label { display: block; font-size: 16px; color: #9c7060; font-weight: 600; margin-bottom: 5px; letter-spacing: 0.04em; }
+  input[type="date"], input[type="number"] {
+    width: 100%; border: 1.5px solid #f2d9cc; border-radius: 10px;
+    padding: 10px 13px; font-size: 19px; color: #3d2318;
+    background: #fff; outline: none; font-family: inherit;
+    -webkit-appearance: none; appearance: none; display: block;
+  }
+  input:focus { border-color: #c97a5a; }
+
+  .btn {
+    width: 100%; padding: 13px; border-radius: 12px; border: none;
+    background: #c97a5a; color: #fff; font-size: 20px; font-weight: 800;
+    cursor: pointer; font-family: inherit; letter-spacing: 0.05em;
+    transition: background 0.15s;
+  }
+  .btn:hover { background: #9e5a3c; }
+
+  /* Result */
+  #result { margin-top: 0; }
+
+  .result-block {
+    border-radius: 18px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+  .result-block.early {
+    background: #e8f1f8;
+    border: 1.5px solid rgba(106,143,173,0.25);
+  }
+  .result-block.late {
+    background: #faeee8;
+    border: 1.5px solid rgba(201,122,90,0.25);
+  }
+  .result-block.impossible {
+    background: #fff0f0;
+    border: 1.5px solid rgba(232,160,160,0.6);
+  }
+  .result-block.info {
+    background: #e8f4ec;
+    border: 1.5px solid rgba(106,158,122,0.3);
+  }
+
+  .block-title { font-weight: 800; font-size: 18px; margin-bottom: 14px; }
+  .block-title.early { color: #6a8fad; }
+  .block-title.late  { color: #c97a5a; }
+  .block-title.impossible { color: #c0392b; }
+  .block-title.info  { color: #6a9e7a; }
+
+  .row { padding: 10px 0; border-bottom: 1px solid #f2d9cc; }
+  .row:last-child { border-bottom: none; }
+  .row-label { font-size: 15px; color: #9c7060; font-weight: 600; letter-spacing: 0.05em; margin-bottom: 3px; }
+  .row-value { font-weight: 700; font-size: 19px; }
+  .row-value.early { color: #6a8fad; }
+  .row-value.late  { color: #c97a5a; }
+  .row-value.main  { color: #9e5a3c; }
+  .row-sub { font-size: 16px; color: #9c7060; margin-top: 3px; }
+
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 99px; font-size: 16px; font-weight: 700; margin-top: 5px; }
+  .badge.ok   { background: #e8f4ec; color: #6a9e7a; }
+  .badge.warn { background: #fdf4e0; color: #d4a853; }
+
+  .info-box { margin-top: 10px; padding: 10px 12px; border-radius: 10px; background: #fff; font-size: 16px; color: #9c7060; }
+
+  .impossible-text { font-size: 17px; color: #c0392b; line-height: 1.8; }
+  .info-text { font-size: 17px; color: #3d6647; line-height: 1.8; }
+
+  .footer { margin-top: 20px; font-size: 15px; color: #9c7060; text-align: center; line-height: 1.7; }
+
+  .section-label {
+    font-size: 16px; font-weight: 700; color: #9c7060;
+    text-transform: uppercase; letter-spacing: 0.08em;
+    margin-bottom: 10px; margin-top: 4px;
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="header">
+    <h1>月経移動 計算ツール</h1>
+    <p>プラノバール 最適スケジュール自動判断</p>
+  </div>
+
+  <div class="card">
+    <div class="card-title">基本情報を入力</div>
+
+    <div class="form-group">
+      <label>最終月経 開始日</label>
+      <input type="date" id="lastPeriod">
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>周期 最短（日）</label>
+        <input type="number" id="cycleMin" value="21" min="20" max="45">
+      </div>
+      <div class="form-group">
+        <label>周期 最長（日）</label>
+        <input type="number" id="cycleMax" value="24" min="20" max="45">
+      </div>
+    </div>
+
+    <div class="card-title" style="margin-top:6px;">月経を避けたい期間</div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>開始日</label>
+        <input type="date" id="avoidStart">
+      </div>
+      <div class="form-group">
+        <label>終了日</label>
+        <input type="date" id="avoidEnd">
+      </div>
+    </div>
+
+    <button class="btn" onclick="calc()">最適スケジュールを計算</button>
+  </div>
+
+  <div id="result"></div>
+
+  <div class="footer">※ このツールは参考用です。必ず医師・薬剤師にご相談ください。</div>
+</div>
+
+<script>
+  const DAY = 24 * 60 * 60 * 1000;
+  const WEEK = ["日","月","火","水","木","金","土"];
+
+  function addDays(d, n) {
+    const r = new Date(d); r.setDate(r.getDate() + n); return r;
+  }
+  function fmt(d) {
+    return `${d.getMonth()+1}月${d.getDate()}日（${WEEK[d.getDay()]}）`;
+  }
+  function fmtS(d) {
+    return `${d.getMonth()+1}月${d.getDate()}日`;
+  }
+  function range(a, b) {
+    return fmtS(a) === fmtS(b) ? fmt(a) : `${fmt(a)} 〜 ${fmt(b)}`;
+  }
+  function parseDate(str) {
+    const [y,m,d] = str.split('-').map(Number);
+    return new Date(y, m-1, d);
+  }
+  // 2つの期間が重なるか
+  function overlaps(s1, e1, s2, e2) {
+    return s1 <= e2 && s2 <= e1;
+  }
+
+  function calc() {
+    const lpVal = document.getElementById('lastPeriod').value;
+    const cMin  = parseInt(document.getElementById('cycleMin').value);
+    const cMax  = parseInt(document.getElementById('cycleMax').value);
+    const asVal = document.getElementById('avoidStart').value;
+    const aeVal = document.getElementById('avoidEnd').value;
+
+    if (!lpVal || !cMin || !cMax || !asVal || !aeVal) {
+      document.getElementById('result').innerHTML = `
+        <div class="result-block impossible">
+          <div class="impossible-text">⚠️ すべての項目を入力してください。</div>
+        </div>`;
+      return;
+    }
+
+    const lp = parseDate(lpVal);
+    const avoidS = parseDate(asVal);
+    const avoidE = parseDate(aeVal);
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    if (avoidE < avoidS) {
+      document.getElementById('result').innerHTML = `
+        <div class="result-block impossible">
+          <div class="impossible-text">⚠️ 避けたい期間の終了日は開始日より後にしてください。</div>
+        </div>`;
+      return;
+    }
+
+    // 次回・次々回月経予測（月経は5〜7日間）
+    const nextMin = addDays(lp, cMin);
+    const nextMax = addDays(lp, cMax);
+    const nextEndMin = addDays(nextMin, 4); // 最短5日間
+    const nextEndMax = addDays(nextMax, 6); // 最長7日間
+    const nextNextMin = addDays(lp, cMin * 2);
+    const nextNextMax = addDays(lp, cMax * 2);
+    const nextNextEndMin = addDays(nextNextMin, 4);
+    const nextNextEndMax = addDays(nextNextMax, 6);
+
+    // 次回月経（開始〜終了）が避けたい期間と被るか
+    const nextConflict = overlaps(nextMin, nextEndMax, avoidS, avoidE);
+    // 次々回月経（開始〜終了）が避けたい期間と被るか
+    const nextNextConflict = overlaps(nextNextMin, nextNextEndMax, avoidS, avoidE);
+
+    let html = '';
+
+    // 次回・次々回ともに被らない場合
+    if (!nextConflict && !nextNextConflict) {
+      html += `
+        <div class="result-block info">
+          <div class="block-title info">✅ 月経移動は不要です</div>
+          <div class="info-text">
+            次回・次々回ともに避けたい期間と重なりません。
+          </div>
+          <div class="row">
+            <div class="row-label">次回の月経（予測）</div>
+            <div class="row-value main">${range(nextMin, nextMax)}頃</div>
+          </div>
+          <div class="row">
+            <div class="row-label">次々回の月経（予測）</div>
+            <div class="row-value main">${range(nextNextMin, nextNextMax)}頃</div>
+          </div>
+        </div>`;
+      document.getElementById('result').innerHTML = html;
+      return;
+    }
+
+    html += `<div class="section-label">判定結果</div>`;
+
+    // ── 遅らせる判定 ──
+    // 内服開始：次回月経予測日の7日前
+    const lateStartMin = addDays(nextMin, -7);
+    const lateStartMax = addDays(nextMax, -7);
+    // 内服終了：開始から10〜14日間
+    const lateEndMin = addDays(lateStartMin, 9);  // 最短10日
+    const lateEndMax = addDays(lateStartMax, 13); // 最長14日
+    const lateDaysLabel = '10〜14日間';
+    // 移動後月経：内服終了の2〜3日後
+    const latePeriodMin = addDays(lateEndMin, 2);
+    const latePeriodMax = addDays(lateEndMax, 3);
+    // 移動後月経の終了予測（5〜7日間）
+    const latePeriodEndMin = addDays(latePeriodMin, 4);
+    const latePeriodEndMax = addDays(latePeriodMax, 6);
+    // 内服開始が今日以降か
+    const lateStartOk = lateStartMax >= today;
+    // 移動後月経が避けたい期間と被らないか
+    const latePeriodOk = !overlaps(latePeriodMin, latePeriodEndMax, avoidS, avoidE);
+    const lateOk = lateStartOk && latePeriodOk;
+
+    // ── 早める判定（次々回を早める）──
+    // 内服開始期限：最終月経1〜3日目
+    const earlyDeadlineMin = lp;
+    const earlyDeadlineMax = addDays(lp, 2);
+    const earlyDeadlinePassed = today > earlyDeadlineMax;
+    // 期限切れなら次回月経1〜3日目が内服開始
+    const e2StartMin = nextMin;
+    const e2StartMax = addDays(nextMax, 2);
+    const e2EndMin = addDays(e2StartMin, 9);
+    const e2EndMax = addDays(e2StartMax, 13);
+    const e2MovedMin = addDays(e2EndMin, 2);
+    const e2MovedMax = addDays(e2EndMax, 3);
+    // 移動後月経が避けたい期間と被らないか
+    // 移動後月経も5〜7日間として重複チェック
+    const e2MovedEndMin = addDays(e2MovedMin, 4);
+    const e2MovedEndMax = addDays(e2MovedMax, 6);
+    const earlyAvoidOk = !overlaps(e2MovedMin, e2MovedEndMax, avoidS, avoidE);
+    // 次々回が被っている場合のみ早めることに意味がある
+    const earlyOk = nextNextConflict && earlyAvoidOk;
+
+    // ── 結果表示 ──
+
+    // 遅らせる
+    if (lateOk) {
+      html += `
+        <div class="result-block late">
+          <div class="block-title late">⬇️ 遅らせる：実施可能</div>
+          <div class="row">
+            <div class="row-label">次の月経（予測）</div>
+            <div class="row-value late">${range(nextMin, nextMax)}</div>
+          </div>
+          <div class="row">
+            <div class="row-label">プラノバール 内服開始（次回月経予測日の7日前）</div>
+            <div class="row-value late">${range(lateStartMin, lateStartMax)}</div>
+          </div>
+          <div class="row">
+            <div class="row-label">プラノバール 内服終了（避けたい期間終了の2〜3日前）</div>
+            <div class="row-value late">${range(lateEndMin, lateEndMax)}</div>
+            <span class="badge ok">内服日数 ${lateDaysLabel}</span>
+          </div>
+          <div class="row">
+            <div class="row-label">移動後の月経（予測）</div>
+            <div class="row-value main">${range(latePeriodMin, latePeriodMax)}</div>
+            <div class="row-sub">内服終了の2〜3日後以降</div>
+          </div>
+        </div>`;
+    } else {
+      let reason = '';
+      if (!lateStartOk) reason = `内服開始日（${fmtS(lateStartMin)}〜${fmtS(lateStartMax)}頃）がすでに過ぎています。`;
+      else if (!latePeriodOk) reason = `内服終了後の月経（${fmtS(latePeriodMin)}〜${fmtS(latePeriodMax)}頃開始、${fmtS(latePeriodEndMin)}〜${fmtS(latePeriodEndMax)}頃終了）が避けたい期間と重なります。`;
+      html += `
+        <div class="result-block impossible">
+          <div class="block-title impossible">⬇️ 遅らせる：実施不可</div>
+          <div class="impossible-text">❌ ${reason}</div>
+        </div>`;
+    }
+
+    // 早める（次々回対象）
+    if (nextNextConflict) {
+      if (earlyOk || !earlyDeadlinePassed) {
+        html += `
+          <div class="result-block early">
+            <div class="block-title early">⬆️ 早める（次々回対象）：実施可能</div>
+            ${earlyDeadlinePassed ? `
+            <div style="background:#fff0f0;border:1.5px solid #e8a0a0;border-radius:10px;padding:10px 12px;font-size:12px;color:#c0392b;margin-bottom:12px;">
+              ❌ 今周期の内服開始期限（${fmt(earlyDeadlineMin)}〜${fmt(earlyDeadlineMax)}）は過ぎています。<br>次回月経から内服を開始してください。
+            </div>` : ''}
+            <div class="row">
+              <div class="row-label">早められる月経（次々回・予測）</div>
+              <div class="row-value early">${range(nextNextMin, nextNextMax)}頃</div>
+            </div>
+            <div class="row">
+              <div class="row-label">プラノバール 内服開始（次回月経の1〜3日目）</div>
+              <div class="row-value early">${range(e2StartMin, e2StartMax)}</div>
+            </div>
+            <div class="row">
+              <div class="row-label">プラノバール 内服終了（10〜14日間）</div>
+              <div class="row-value early">${range(e2EndMin, e2EndMax)}</div>
+            </div>
+            <div class="row">
+              <div class="row-label">移動後の月経（予測）</div>
+              <div class="row-value main">${range(e2MovedMin, e2MovedMax)}</div>
+              <div class="row-sub">内服終了の2〜3日後</div>
+            </div>
+            <div class="info-box">📌 通常の次々回月経：${fmtS(nextNextMin)}〜${fmtS(nextNextMax)}頃</div>
+          </div>`;
+      } else {
+        html += `
+          <div class="result-block impossible">
+            <div class="block-title impossible">⬆️ 早める（次々回対象）：実施不可</div>
+            <div class="impossible-text">❌ 移動後の月経（${fmtS(e2MovedMin)}〜${fmtS(e2MovedMax)}頃）が避けたい期間と重なるため、早めても効果がありません。</div>
+          </div>`;
+      }
+    }
+
+    // 両方不可の場合
+    if (!lateOk && !nextNextConflict) {
+      html += `
+        <div class="result-block info">
+          <div class="block-title info">💡 補足</div>
+          <div class="info-text">
+            次々回の月経（${fmtS(nextNextMin)}〜${fmtS(nextNextMax)}頃）は避けたい期間と重ならないため、早める対応は不要です。
+          </div>
+        </div>`;
+    }
+
+    document.getElementById('result').innerHTML = html;
+  }
+
+  // 初期値：今日の日付
+  const _t = new Date();
+  const _y = _t.getFullYear();
+  const _m = String(_t.getMonth()+1).padStart(2,'0');
+  const _d = String(_t.getDate()).padStart(2,'0');
+  document.getElementById('lastPeriod').value = `${_y}-${_m}-${_d}`;
+</script>
+</body>
+</html>
